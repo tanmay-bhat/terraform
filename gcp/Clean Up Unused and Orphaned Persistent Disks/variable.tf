@@ -15,7 +15,8 @@ variable "region"{
   default = "us-central1"
 }
 
-
+variable "app-location" {
+  default = "us-central"
+}
 variable "project-id"{
-  
 }

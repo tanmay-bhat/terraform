@@ -1,12 +1,10 @@
 #enable the Cloud Scheduler API
-
 resource "google_project_service" "cloud-Scheduler-api" {
   project = var.project-id
   service = "cloudscheduler.googleapis.com"
 }
 
-#create compute disks
-
+#create required (2n) compute disks
 resource "google_compute_disk" "orphaned-disk" {
   name  = var.orphaned-disk
   type  = "pd-ssd"
@@ -27,8 +25,7 @@ resource "google_compute_disk" "unused-disk" {
   }
 }
 
-# create compute instance
-
+# create compute instance & attach the create disk to it
 resource "google_compute_instance" "disk-instance" {
     name = var.instance-name
     zone = "us-central1-a"
@@ -39,7 +36,7 @@ resource "google_compute_instance" "disk-instance" {
         }
     }
 
-#comment out lines 42-> 46 to detach the disk from VM    
+#comment out lines 43-> 46 to detach the disk from VM    
     attached_disk {
       source = google_compute_disk.orphaned-disk.self_link
       device_name = google_compute_disk.orphaned-disk.name
@@ -52,25 +49,28 @@ resource "google_compute_instance" "disk-instance" {
     depends_on = [google_compute_disk.orphaned-disk]
 }
 
+#execute shell script to clone the GCP repo, replce project ID with current ID
 resource "null_resource" "git_clone" {
   provisioner "local-exec" {
-    command = "../scripts/script.sh"
-    interpreter = ["bash"]
+    command = <<-EOT
+    "chmod +x script.sh"
+    "./script.sh"
+    EOT
   }
-}
+} 
 
-
-# Compress source code
+# Compress source code cloned earlier
 data "archive_file" "source" {
   type        = "zip"
   source_dir  = "gcf-automated-resource-cleanup/unattached-pd"
   output_path = "gcf-automated-resource-cleanup/unattached-pd.zip"
+  depends_on = [null_resource.git_clone]
 }
 
 
-# Create bucket that will host the source code
+# Create a cloud bucket that will host the source code
 resource "google_storage_bucket" "bucket" {
-  name = "delete-pd-function"
+  name = "delete-pd-function-${var.project-id}"
   location = "us-central1"
 }
 
@@ -83,7 +83,6 @@ resource "google_storage_bucket_object" "zip" {
 }
 
 # create cloud function 
-
 resource "google_cloudfunctions_function" "delete-pd-function" {
   name        = "delete_unattached_pds"
   runtime     = "python39"
@@ -92,4 +91,22 @@ resource "google_cloudfunctions_function" "delete-pd-function" {
   source_archive_object = google_storage_bucket_object.zip.name
   trigger_http          = true
   entry_point           = "delete_unattached_pds"
+  depends_on = [google_storage_bucket.bucket]
+}
+
+#create app engine
+resource "google_app_engine_application" "app-engine" {
+  project     = var.project-id
+  location_id = var.app-location
+  depends_on = [google_cloudfunctions_function.delete-pd-function] 
+}
+
+#create scheduler job to run function at 2 AM every night
+resource "google_cloud_scheduler_job" "job" {
+  name        = "unattached-pd-job"
+  schedule    = "* 2 * * *"
+    http_target {
+      uri = google_cloudfunctions_function.delete-pd-function.https_trigger_url
+    }
+  depends_on = [google_cloudfunctions_function.delete-pd-function]  
 }
