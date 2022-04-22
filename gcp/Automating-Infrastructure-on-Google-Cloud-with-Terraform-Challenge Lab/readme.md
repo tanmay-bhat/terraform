@@ -18,4 +18,6 @@ The example below will import an AWS instance into the aws_instance resource nam
 
 ```
 terraform import module.foo.aws_instance.bar i-abcd1234
+terraform import module.instances.google_compute_instance.tf-instance-1 
 ``` 
+terraform apply -replace="module.instances.google_compute_instance.tf-instance-813516"

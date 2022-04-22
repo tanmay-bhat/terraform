@@ -5,14 +5,14 @@ terraform {
       version = "4.18.0"
     }
   }
-  # backend "gcs" {
-  #   bucket  = module.storage.name
-  #   prefix  = "terraform/state"
-  #   }
+  backend "gcs" {
+    bucket  = tf-bucket-78416
+    prefix  = "terraform/state"
+    }
 }
 
 provider "google" {
-    project = var.project-id
+    project = var.project_id
     region  = var.region
 }
 
@@ -20,17 +20,19 @@ provider "google" {
 
 module "instances" {
   source = "./modules/instances"
+  project-id   = var.project_id
 }
 
-# module "storage" {
-#   source = "./modules/storage"
-# }
+module "storage" {
+  source = "./modules/storage"
+  project-id   = var.project_idd
+ }
 
 module "vpc" {
     source  = "terraform-google-modules/network/google//modules/vpc"
     version = "~> 2.0.0"
     project_id   = var.project_id
-    network_name = "VPC Name"
+    network_name = "tf-vpc-836761"
     routing_mode = "GLOBAL"
     shared_vpc_host = false
 }
