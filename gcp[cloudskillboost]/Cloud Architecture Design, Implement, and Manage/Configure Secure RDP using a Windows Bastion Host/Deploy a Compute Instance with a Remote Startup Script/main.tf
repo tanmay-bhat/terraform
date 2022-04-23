@@ -36,19 +36,16 @@ resource "google_compute_instance" "bastion-host" {
   zone = var.zone
   boot_disk {
   initialize_params {
-    image = "windows-2016"
+    image = "windows-server-2016-dc-v20220414"
     }
   }
   network_interface {
-    network = google_compute_network.lab-vpc.self_link
     subnetwork = google_compute_subnetwork.lab-subnet.self_link
     access_config {
-      name = "External NAT"
-      nat_ip = var.nat_ip
     }
   }
   network_interface {
-  network = default
+   network = var.default-network
   }
   tags = ["bastion-host"]
   depends_on = [google_compute_firewall.bastion-firewall]
@@ -61,14 +58,14 @@ resource "google_compute_instance" "secure-instance" {
   zone         = "us-central1-a"
   boot_disk {
     initialize_params {
-      image = "windows-2016"
+      image = "windows-server-2016-dc-v20220414"
     }
 }
   network_interface {
-    network = google_compute_networklab-vpc.self_link
+    subnetwork = google_compute_subnetwork.lab-subnet.self_link
   }
   network_interface {
-    network = default
+    network = var.default-network
   }
   tags = ["secure-host"]   
   depends_on = [google_compute_network.lab-vpc]         

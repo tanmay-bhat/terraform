@@ -6,5 +6,10 @@ variable "project_id" {
 }
 
 variable "zone" {
-  ddefault = "us-central1-a"  
+  default = "us-central1-a"  
 }
+
+variable "default-network" {
+  default = "default"
+}
+  
