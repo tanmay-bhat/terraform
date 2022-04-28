@@ -30,9 +30,7 @@ resource "null_resource" "script" {
     ./script.sh
     EOT
   }
-  depends_on =  [google_cloudbuild_trigger.build_trigger,
-    google_container_node_pool.primary_preemptible_nodes]
+  depends_on =  [google_container_node_pool.primary_preemptible_nodes]
 } 
-
 
 
