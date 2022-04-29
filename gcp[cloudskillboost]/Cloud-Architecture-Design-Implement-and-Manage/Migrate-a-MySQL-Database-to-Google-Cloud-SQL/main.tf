@@ -6,12 +6,27 @@ resource "google_sql_database_instance" "wordpress-db" {
   deletion_protection = false
   
   settings {
-    # Second-generation instance tiers are based on the machine
-    # type. See argument reference below.
     tier = "db-f1-micro"
+    ip_configuration {
+      ipv4_enabled    = false
+      private_network = google_compute_network.private_network.id
+    }    
   }
 }
 
+
+resource "google_sql_database" "wordpress-database" {
+  name     = "wordpress"
+  instance = google_sql_database_instance.wordpress-db.name
+  depends_on = [google_sql_database_instance.wordpress-db]
+}
+
+
+resource "google_sql_user" "users" {
+  name     = "blogadmin"
+  instance = google_sql_database_instance.wordpress-db.name
+  password = "Password1*"
+}
 
 
 
